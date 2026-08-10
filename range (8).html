@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RANGE — Mobility Screening Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B1F1D;
+    --paper:#E9ECE6;
+    --panel:#DEE3D9;
+    --panel-2:#D2D8CA;
+    --line: rgba(27,31,29,0.16);
+    --line-strong: rgba(27,31,29,0.32);
+    --accent:#4FAE5C;      /* right side */
+    --accent-2:#2E6B4F;    /* left side */
+    --flag:#B84A3E;
+    --good:#5F7A5B;
+    --caution:#D9B23C;
+    --muted:#6B7268;
+    --white:#F6F7F3;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background: var(--accent); color:var(--white); }
+  button{ font-family:inherit; cursor:pointer; }
+  input, textarea{ font-family:inherit; }
+  :focus-visible{ outline: 2px solid var(--ink); outline-offset:2px; }
+
+  #app{
+    display:grid;
+    grid-template-columns: 288px 1fr;
+    min-height:100vh;
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar{
+    background: var(--ink);
+    color: var(--paper);
+    padding: 28px 22px;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+    position:sticky;
+    top:0;
+    height:100vh;
+  }
+  .brand{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .brand .mark{
+    font-family:'Oswald', sans-serif;
+    font-weight:700;
+    font-size:34px;
+    letter-spacing:0.06em;
+    line-height:1;
+  }
+  .brand .mark span{ color: var(--accent); }
+  .brand .tag{
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color: rgba(233,236,230,0.55);
+  }
+  .protocol-note{
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: rgba(233,236,230,0.4);
+    border-top:1px solid rgba(233,236,230,0.14);
+    padding-top:12px;
+  }
+
+  .add-row{
+    display:flex;
+    gap:8px;
+  }
+  .add-row input{
+    flex:1;
+    background: rgba(246,247,243,0.08);
+    border:1px solid rgba(246,247,243,0.2);
+    border-radius:8px;
+    padding:9px 10px;
+    color:var(--paper);
+    font-size:13.5px;
+  }
+  .add-row input::placeholder{ color: rgba(233,236,230,0.4); }
+  .add-row button{
+    background: var(--accent);
+    color:var(--ink);
+    border:none;
+    border-radius:8px;
+    padding:0 14px;
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:0.02em;
+  }
+  .add-row button:hover{ filter:brightness(1.08); }
+
+  .roster{
+    flex:1;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin:0 -8px;
+    padding:0 8px;
+  }
+  .roster-label{
+    font-size:10.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color: rgba(233,236,230,0.4);
+    margin: 4px 0 2px;
+  }
+  .athlete-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 10px;
+    border-radius:8px;
+    background: transparent;
+    border:1px solid transparent;
+    cursor:pointer;
+    position:relative;
+  }
+  .athlete-item:hover{ background: rgba(246,247,243,0.06); }
+  .athlete-item.active{
+    background: rgba(79,174,92,0.14);
+    border-color: rgba(79,174,92,0.4);
+  }
+  .avatar{
+    width:30px; height:30px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Oswald', sans-serif;
+    font-size:12.5px; font-weight:600;
+    color:var(--ink);
+    flex-shrink:0;
+  }
+  .athlete-info{ flex:1; min-width:0; }
+  .athlete-name{
+    font-size:13.5px; font-weight:500;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .athlete-progress{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color: rgba(233,236,230,0.45);
+  }
+  .athlete-item.active .athlete-progress{ color: rgba(79,174,92,0.85); }
+  .del-btn{
+    background:none; border:none; color: rgba(233,236,230,0.3);
+    font-size:15px; line-height:1; padding:2px 4px; border-radius:4px;
+    opacity:0; transition:opacity .1s;
+  }
+  .athlete-item:hover .del-btn{ opacity:1; }
+  .del-btn:hover{ color: var(--flag); background: rgba(184,74,62,0.15); }
+  .roster-empty{
+    font-size:12.5px; color: rgba(233,236,230,0.35);
+    padding:12px 4px; line-height:1.5;
+  }
+
+  .backup-row{
+    display:flex; flex-direction:column; gap:6px;
+    border-top:1px solid rgba(233,236,230,0.14);
+    padding-top:14px;
+  }
+  .backup-btn{
+    display:block; text-align:left; width:100%;
+    background: rgba(246,247,243,0.06); border:1px solid rgba(246,247,243,0.16);
+    border-radius:8px; padding:9px 11px; font-size:12px; color:var(--paper);
+    cursor:pointer; font-family:inherit; box-sizing:border-box;
+  }
+  .backup-btn:hover{ background: rgba(246,247,243,0.13); }
+
+  /* ===== MAIN ===== */
+  .main{ padding: 34px 40px 60px; }
+  .empty-state{
+    max-width:460px; margin: 10vh auto 0; text-align:left;
+  }
+  .empty-state .mark{
+    font-family:'Oswald', sans-serif; font-weight:700;
+    font-size:52px; letter-spacing:0.04em; line-height:0.95;
+  }
+  .empty-state .mark span{ color: var(--accent); }
+  .empty-state .tag{
+    font-size:13px; text-transform:uppercase; letter-spacing:0.14em;
+    color: var(--muted); margin: 10px 0 26px;
+  }
+  .empty-state p{
+    font-size:14.5px; line-height:1.65; color:#3c423d;
+    border-left: 2px solid var(--line-strong);
+    padding-left:16px;
+  }
+  .empty-state .protocol-list{
+    margin-top:22px; font-family:'IBM Plex Mono', monospace; font-size:12px;
+    color: var(--muted); line-height:2;
+  }
+
+  .session-header{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    margin-bottom:26px; gap:20px; flex-wrap:wrap;
+  }
+  .session-header h1{
+    font-family:'Oswald', sans-serif; font-size:30px; font-weight:600;
+    margin:0; letter-spacing:0.01em;
+  }
+  .session-meta{
+    font-size:12px; color:var(--muted); margin-top:4px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .session-stats{ display:flex; gap:18px; align-items:center; }
+  .stat{
+    text-align:right;
+  }
+  .stat .num{ font-family:'IBM Plex Mono', monospace; font-size:21px; font-weight:500; }
+  .stat .label{ font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); }
+  .stat.flagged .num{ color: var(--flag); }
+  .save-btn{
+    background: var(--accent); color: var(--ink); border:none;
+    border-radius:8px; padding:9px 18px; font-weight:600; font-size:12.5px;
+    letter-spacing:0.02em; font-family:inherit; align-self:center;
+  }
+  .save-btn:hover{ filter:brightness(1.06); }
+  .save-btn.saved{ background: var(--ink); color: var(--paper); }
+  .save-btn.save-error{ background: var(--flag); color:#fff; }
+  .new-test-btn{
+    background: transparent; color: var(--ink); border:1px solid var(--line-strong);
+    border-radius:8px; padding:9px 16px; font-weight:600; font-size:12.5px;
+    letter-spacing:0.02em; font-family:inherit; align-self:center;
+  }
+  .new-test-btn:hover{ background: var(--panel); }
+  .history-row{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    margin: 4px 0 18px;
+  }
+  .history-label{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted);
+  }
+  .history-pill{
+    font-family:'IBM Plex Mono', monospace; font-size:11px;
+    background:var(--panel); border:1px solid var(--line-strong); border-radius:20px;
+    padding:4px 11px; color:var(--ink);
+  }
+  .history-pill:hover{ background:var(--panel-2); }
+
+  .history-btn{
+    background: var(--ink); color: var(--paper); border:none;
+    border-radius:8px; padding:9px 16px; font-weight:600; font-size:12.5px;
+    letter-spacing:0.02em; font-family:inherit; align-self:center;
+  }
+  .history-btn:hover{ filter:brightness(1.2); }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(27,31,29,0.55);
+    display:flex; align-items:center; justify-content:center;
+    z-index:50; padding:24px;
+  }
+  .modal-panel{
+    background:var(--white); border-radius:14px; max-width:960px; width:100%;
+    max-height:82vh; display:flex; flex-direction:column; overflow:hidden;
+    box-shadow:0 24px 70px rgba(0,0,0,0.35);
+  }
+  .modal-head{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    padding:20px 24px 16px; border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  .modal-title{ font-family:'Oswald', sans-serif; font-size:21px; font-weight:600; }
+  .modal-sub{ font-size:11.5px; color:var(--muted); margin-top:3px; font-family:'IBM Plex Mono', monospace; }
+  .modal-close{
+    background:none; border:none; font-size:24px; line-height:1;
+    color:var(--muted); padding:0 4px; cursor:pointer;
+  }
+  .modal-close:hover{ color:var(--ink); }
+  .modal-body{ padding:18px 24px 24px; overflow:auto; }
+  .modal-empty{ font-size:13.5px; color:var(--muted); line-height:1.6; max-width:480px; }
+  .history-table{ border-collapse:collapse; width:100%; font-size:12px; }
+  .history-table th, .history-table td{
+    padding:9px 14px; border-bottom:1px solid var(--line);
+    white-space:nowrap; text-align:left;
+  }
+  .history-table thead th{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:0.06em; color:var(--muted); position:sticky; top:0; background:var(--white);
+  }
+  .history-table td.row-label, .history-table th:first-child{
+    font-weight:600; position:sticky; left:0; background:var(--white);
+  }
+  .cur-tag{ color:var(--accent); }
+  .cell-line{ line-height:1.5; }
+  .delta{ font-size:10px; font-family:'IBM Plex Mono', monospace; margin-left:3px; }
+  .delta.up{ color:var(--accent); }
+  .delta.down{ color:var(--flag); }
+  .delta.flat{ color:var(--muted); }
+  .modal-footnote{ font-size:11px; color:var(--muted); margin-top:12px; }
+
+  .toast{
+    position:fixed; bottom:26px; right:26px; z-index:60;
+    background: var(--ink); color: var(--paper);
+    padding:13px 20px; border-radius:9px; font-size:12.5px;
+    box-shadow:0 12px 32px rgba(0,0,0,0.28);
+    opacity:0; transform:translateY(10px);
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+
+  .confirm-panel{
+    background: var(--white); border-radius:14px; padding:24px;
+    max-width:380px; width:100%; box-shadow:0 24px 70px rgba(0,0,0,0.35);
+  }
+  .confirm-message{ font-size:14px; line-height:1.55; color:var(--ink); margin:0 0 20px; }
+  .confirm-actions{ display:flex; justify-content:flex-end; gap:10px; }
+  .confirm-cancel{
+    background:transparent; border:1px solid var(--line-strong); border-radius:8px;
+    padding:9px 16px; font-size:12.5px; font-weight:600; color:var(--ink); font-family:inherit;
+  }
+  .confirm-cancel:hover{ background:var(--panel); }
+  .confirm-ok{
+    background: var(--accent); color: var(--ink); border:none; border-radius:8px;
+    padding:9px 16px; font-size:12.5px; font-weight:600; font-family:inherit;
+  }
+  .confirm-ok:hover{ filter:brightness(1.06); }
+  .confirm-ok.danger{ background: var(--flag); color:#fff; }
+
+  .progress-track{
+    height:5px; border-radius:3px; background: var(--panel-2);
+    overflow:hidden; margin-top:16px;
+  }
+  .progress-fill{
+    height:100%; background: var(--accent); border-radius:3px;
+    transition: width .25s ease;
+  }
+
+  .card-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:16px;
+    margin-top:24px;
+  }
+  .card{
+    background: var(--white);
+    border:1px solid var(--line);
+    border-radius: var(--radius);
+    padding:16px 16px 14px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .card.wide{ grid-column: span 3; }
+  .card-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .card-title{ font-size:13.5px; font-weight:600; }
+  .card-sub{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .badge{
+    font-family:'IBM Plex Mono', monospace; font-size:10px;
+    padding:2px 7px; border-radius:20px; white-space:nowrap;
+    border:1px solid var(--line-strong); color:var(--muted);
+  }
+  .badge.flag{ color:#fff; background:var(--flag); border-color:var(--flag); }
+  .badge.good{ color:#fff; background:var(--good); border-color:var(--good); }
+  .badge.wide{ color:var(--ink); background:var(--accent); border-color:var(--accent); }
+  .badge.narrow{ color:#fff; background:var(--accent-2); border-color:var(--accent-2); }
+  .badge.tri-green{ color:var(--ink); background:var(--accent); border-color:var(--accent); }
+  .badge.tri-yellow{ color:var(--ink); background:var(--caution); border-color:var(--caution); }
+  .badge.tri-red{ color:#fff; background:var(--flag); border-color:var(--flag); }
+
+  .gauge-row{ display:flex; align-items:center; gap:12px; }
+  .gauge-wrap{ flex-shrink:0; width:132px; height:132px; touch-action:none; }
+  .gauge-readout{ flex:1; display:flex; flex-direction:column; gap:6px; }
+  .side-row{ display:flex; align-items:center; gap:6px; }
+  .side-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .side-dot.r{ background:var(--accent); }
+  .side-dot.l{ background:var(--accent-2); }
+  .side-row label{ font-size:10.5px; color:var(--muted); width:14px; }
+  .side-row input{
+    width:52px; border:1px solid var(--line-strong); border-radius:6px;
+    padding:3px 5px; font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+    text-align:right; background:var(--paper);
+  }
+  .side-row .deg{ font-size:11px; color:var(--muted); }
+  .note-input{
+    width:100%; border:none; border-top:1px dashed var(--line-strong);
+    background:transparent; font-size:11px; color:#3c423d; padding-top:6px;
+    resize:none; font-family:inherit;
+  }
+  .note-input::placeholder{ color: #97998f; }
+
+  .rating-btns{ display:flex; gap:8px; }
+  .rating-btn{
+    flex:1; padding:9px 0; border-radius:8px; border:1px solid var(--line-strong);
+    background:var(--paper); font-size:12.5px; font-weight:600; color:var(--muted);
+    font-family:inherit;
+  }
+  .rating-btn.active.tri-green{ background:var(--accent); color:var(--ink); border-color:var(--accent); }
+  .rating-btn.active.tri-yellow{ background:var(--caution); color:var(--ink); border-color:var(--caution); }
+  .rating-btn.active.tri-red{ background:var(--flag); color:#fff; border-color:var(--flag); }
+
+  /* squat card */
+  .squat-body{ display:flex; gap:24px; flex-wrap:wrap; }
+  .squat-score{ display:flex; flex-direction:column; gap:8px; }
+  .score-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); }
+  .score-btns{ display:flex; gap:6px; }
+  .score-btn{
+    width:36px; height:36px; border-radius:8px; border:1px solid var(--line-strong);
+    background: var(--paper); font-family:'IBM Plex Mono', monospace; font-size:15px;
+  }
+  .score-btn.active{ background: var(--ink); color: var(--paper); border-color:var(--ink); }
+  .fault-grid{ flex:1; min-width:220px; display:flex; flex-direction:column; gap:6px; }
+  .fault-chip{
+    display:flex; align-items:center; gap:8px;
+    font-size:12.5px; padding:6px 4px; border-bottom:1px solid var(--line);
+    cursor:pointer; user-select:none;
+  }
+  .fault-chip input{ accent-color: var(--ink); width:14px; height:14px; }
+
+  @media (max-width: 900px){
+    #app{ grid-template-columns: 1fr; }
+    .sidebar{ position:relative; height:auto; }
+    .card-grid{ grid-template-columns: repeat(2,1fr); }
+    .card.wide{ grid-column: span 2; }
+  }
+  @media (max-width: 560px){
+    .card-grid{ grid-template-columns: 1fr; }
+    .card.wide{ grid-column: span 1; }
+    .main{ padding:24px 18px 50px; }
+  }
+  @media print{
+    .sidebar, .add-row, .del-btn{ display:none !important; }
+    #app{ grid-template-columns: 1fr; }
+    body{ background:#fff; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">RANGE<span>.</span></div>
+      <div class="tag">Mobility Screening Log</div>
+    </div>
+    <div class="add-row">
+      <input id="newAthleteInput" type="text" placeholder="Athlete name" maxlength="40" />
+      <button id="addAthleteBtn">Add</button>
+    </div>
+    <div>
+      <div class="roster-label">Athletes</div>
+      <div class="roster" id="roster"></div>
+    </div>
+    <div class="backup-row">
+      <button class="backup-btn" id="exportBtn">⭳ Export Backup</button>
+      <label class="backup-btn" for="importFile">⭱ Import Backup</label>
+      <input type="file" id="importFile" accept="application/json" style="display:none">
+    </div>
+    <div class="protocol-note">10-Point Athlete Screening Protocol</div>
+  </aside>
+
+  <main class="main" id="main"></main>
+</div>
+
+<script>
+const TESTS = [
+  { id:'hipER',    label:'Hip External Rotation',      sub:'Supine, 90° hip/knee flexion',     max:90,  normal:[55,65] },
+  { id:'hipIR',    label:'Hip Internal Rotation',      sub:'Supine, 90° hip/knee flexion',     max:90,  normal:[25,35] },
+  { id:'shER',      label:'Shoulder External Rotation', sub:'ER at 90° abduction',              max:140, normal:[115,125] },
+  { id:'shIR',      label:'Shoulder Internal Rotation', sub:'IR at 90° abduction',              max:90,  normal:[40,50] },
+  { id:'shFlex',    label:'Shoulder Flexion',           sub:'Overhead reach',                   max:240, normal:[165,180] },
+];
+
+const TSPINE_TEST = { id:'tspine', label:'Seated T-Spine Rotation', sub:'Trunk rotation, hips fixed' };
+const TSPINE_RATINGS = [
+  { value:'Good', cls:'tri-green' },
+  { value:'Fair', cls:'tri-yellow' },
+  { value:'Bad',  cls:'tri-red' },
+];
+
+const IA_TEST = { id:'ia', label:'Infrasternal Angle', sub:'>100° wide · <100° narrow', min:60, max:140, threshold:100 };
+
+const TRI_COLORS = [
+  { value:'Green', cls:'tri-green' },
+  { value:'Yellow', cls:'tri-yellow' },
+  { value:'Red', cls:'tri-red' },
+];
+
+const PELVIS_CHECKPOINTS = [
+  'Choppy',
+  'Low mind-muscle connection',
+  'Low range of motion',
+];
+
+const PELVIS_TESTS = [
+  { key:'pelvicTilt',     label:'Pelvic Tilt',     sub:'Anterior / posterior control', faults: PELVIS_CHECKPOINTS },
+  { key:'pelvisRotation', label:'Pelvis Rotation', sub:'Rotational control',           faults: PELVIS_CHECKPOINTS },
+];
+
+const SQUAT_FAULTS = [
+  'Feet turn out',
+  'Knees cave in (valgus)',
+  'Excessive forward lean',
+  'Arms fall forward',
+  'Heels rise off floor',
+  'Low back arches'
+];
+
+const TOTAL_POINTS = TESTS.length + 5; /* + T-Spine, IA, Squat, Pelvic Tilt, Pelvis Rotation */
+
+let state = {
+  athletes: [],
+  selectedId: null,
+};
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+function makeScores(){
+  const scores = {};
+  TESTS.forEach(t => scores[t.id] = { L:null, R:null, note:'' });
+  return scores;
+}
+
+function addAthlete(name){
+  name = name.trim();
+  if(!name) return;
+  const athlete = {
+    id: uid(),
+    name,
+    scores: makeScores(),
+    tspine: { rating:null, note:'' },
+    pelvicTilt: { rating:null, faults:new Set(), note:'' },
+    pelvisRotation: { rating:null, faults:new Set(), note:'' },
+    ia: { value:null, note:'' },
+    squat: { score:null, faults:new Set() },
+    sessions: []
+  };
+  state.athletes.push(athlete);
+  state.selectedId = athlete.id;
+  render();
+}
+
+function deleteAthlete(id){
+  const a = state.athletes.find(x=>x.id===id);
+  if(!a) return;
+  showConfirm(`Remove ${a.name} and their screening data? This can't be undone.`, ()=>{
+    state.athletes = state.athletes.filter(x=>x.id!==id);
+    if(state.selectedId === id){
+      state.selectedId = state.athletes.length ? state.athletes[0].id : null;
+    }
+    render();
+  }, { danger:true });
+}
+
+function selectAthlete(id){
+  state.selectedId = id;
+  render();
+}
+
+function initials(name){
+  return name.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+}
+
+function avatarColor(id){
+  const colors = ['#4FAE5C','#2E6B4F','#B84A3E','#5F7A5B','#8C6FA9','#4C7EA8'];
+  let h = 0;
+  for(const c of id) h += c.charCodeAt(0);
+  return colors[h % colors.length];
+}
+
+function countCompleted(athlete){
+  let n = 0;
+  TESTS.forEach(t=>{
+    const s = athlete.scores[t.id];
+    if(s.L !== null && s.R !== null) n++;
+  });
+  if(athlete.tspine.rating !== null) n++;
+  if(athlete.pelvicTilt.rating !== null) n++;
+  if(athlete.pelvisRotation.rating !== null) n++;
+  if(athlete.ia.value !== null) n++;
+  if(athlete.squat.score !== null) n++;
+  return n;
+}
+
+function flagThreshold(max){ return Math.max(6, Math.round(max*0.12)); }
+
+function isFlagged(test, scoreObj){
+  if(scoreObj.L===null || scoreObj.R===null) return false;
+  return Math.abs(scoreObj.L - scoreObj.R) > flagThreshold(test.max);
+}
+
+function countFlags(athlete){
+  let n = 0;
+  TESTS.forEach(t=>{ if(isFlagged(t, athlete.scores[t.id])) n++; });
+  return n;
+}
+
+/* ---------- session history: archive a completed test, start a fresh one ---------- */
+function snapshotAthlete(a){
+  return {
+    id: uid(),
+    date: new Date().toISOString(),
+    scores: JSON.parse(JSON.stringify(a.scores)),
+    tspine: JSON.parse(JSON.stringify(a.tspine)),
+    pelvicTilt: { rating: a.pelvicTilt.rating, faults: Array.from(a.pelvicTilt.faults), note: a.pelvicTilt.note },
+    pelvisRotation: { rating: a.pelvisRotation.rating, faults: Array.from(a.pelvisRotation.faults), note: a.pelvisRotation.note },
+    ia: JSON.parse(JSON.stringify(a.ia)),
+    squat: { score: a.squat.score, faults: Array.from(a.squat.faults) }
+  };
+}
+
+function countCompletedSnapshot(s){
+  let n = 0;
+  TESTS.forEach(t=>{
+    const sc = s.scores[t.id];
+    if(sc.L !== null && sc.R !== null) n++;
+  });
+  if(s.tspine.rating !== null) n++;
+  if(s.pelvicTilt && s.pelvicTilt.rating !== null) n++;
+  if(s.pelvisRotation && s.pelvisRotation.rating !== null) n++;
+  if(s.ia.value !== null) n++;
+  if(s.squat.score !== null) n++;
+  return n;
+}
+
+function startNewTest(athlete){
+  athlete.sessions = athlete.sessions || [];
+  athlete.sessions.unshift(snapshotAthlete(athlete));
+  athlete.scores = makeScores();
+  athlete.tspine = { rating:null, note:'' };
+  athlete.pelvicTilt = { rating:null, faults:new Set(), note:'' };
+  athlete.pelvisRotation = { rating:null, faults:new Set(), note:'' };
+  athlete.ia = { value:null, note:'' };
+  athlete.squat = { score:null, faults:new Set() };
+  saveState();
+  render();
+  showToast(`Saved to ${athlete.name}'s history · board cleared for a new test`);
+}
+
+function loadSession(athlete, sessionId){
+  const s = athlete.sessions.find(x=>x.id===sessionId);
+  if(!s) return;
+  showConfirm('Load this session into the working view? Your current unsaved entries will be replaced.', ()=>{
+    athlete.scores = JSON.parse(JSON.stringify(s.scores));
+    athlete.tspine = JSON.parse(JSON.stringify(s.tspine));
+    athlete.pelvicTilt = { rating: s.pelvicTilt?.rating ?? null, faults: new Set(s.pelvicTilt?.faults||[]), note: s.pelvicTilt?.note || '' };
+    athlete.pelvisRotation = { rating: s.pelvisRotation?.rating ?? null, faults: new Set(s.pelvisRotation?.faults||[]), note: s.pelvisRotation?.note || '' };
+    athlete.ia = JSON.parse(JSON.stringify(s.ia));
+    athlete.squat = { score: s.squat.score, faults: new Set(s.squat.faults) };
+    render();
+  });
+}
+
+/* ---------- gauge geometry ---------- */
+function polarPoint(value, max, half, cx, cy, r){
+  const angleDeg = 180 - (Math.max(0,Math.min(value,max))/max)*180;
+  const rad = angleDeg * Math.PI/180;
+  const x = cx + r*Math.cos(rad);
+  const y = half==='top' ? cy - r*Math.sin(rad) : cy + r*Math.sin(rad);
+  return {x,y};
+}
+
+function describeArc(v0, v1, max, half, cx, cy, r){
+  const p0 = polarPoint(v0, max, half, cx, cy, r);
+  const p1 = polarPoint(v1, max, half, cx, cy, r);
+  const sweep = half==='top' ? 1 : 0;
+  return `M ${p0.x} ${p0.y} A ${r} ${r} 0 0 ${sweep} ${p1.x} ${p1.y}`;
+}
+
+function gaugeSVG(test, scoreObj){
+  const cx=66, cy=66, r=54, rTicks=60, rNeedle=46;
+  const trackTop = describeArc(0, test.max, test.max, 'top', cx, cy, r);
+  const trackBot = describeArc(0, test.max, test.max, 'bottom', cx, cy, r);
+  const normTop = describeArc(test.normal[0], test.normal[1], test.max, 'top', cx, cy, r);
+  const normBot = describeArc(test.normal[0], test.normal[1], test.max, 'bottom', cx, cy, r);
+
+  let ticks = '';
+  [0,0.25,0.5,0.75,1].forEach(f=>{
+    const v = f*test.max;
+    ['top','bottom'].forEach(half=>{
+      const p1 = polarPoint(v, test.max, half, cx, cy, r-2);
+      const p2 = polarPoint(v, test.max, half, cx, cy, rTicks);
+      ticks += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="var(--line-strong)" stroke-width="1"/>`;
+    });
+  });
+
+  function needle(value, half, color){
+    if(value===null) return `<circle cx="${cx}" cy="${cy}" r="3.5" fill="none" stroke="${color}" stroke-width="1.5" stroke-dasharray="2 2"/>`;
+    const p = polarPoint(value, test.max, half, cx, cy, rNeedle);
+    return `<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="${color}"/>`;
+  }
+
+  return `
+  <svg viewBox="0 0 132 132" class="gauge-svg" data-test="${test.id}" width="132" height="132">
+    <line x1="${cx-r}" y1="${cy}" x2="${cx+r}" y2="${cy}" stroke="var(--line)" stroke-width="1"/>
+    <path d="${trackTop}" fill="none" stroke="var(--panel-2)" stroke-width="6" stroke-linecap="round"/>
+    <path d="${trackBot}" fill="none" stroke="var(--panel-2)" stroke-width="6" stroke-linecap="round"/>
+    <path d="${normTop}" fill="none" stroke="var(--good)" stroke-opacity="0.35" stroke-width="6" stroke-linecap="round"/>
+    <path d="${normBot}" fill="none" stroke="var(--good)" stroke-opacity="0.35" stroke-width="6" stroke-linecap="round"/>
+    ${ticks}
+    ${needle(scoreObj.R,'top','var(--accent)')}
+    ${needle(scoreObj.L,'bottom','var(--accent-2)')}
+    <circle cx="${cx}" cy="${cy}" r="3" fill="var(--ink)"/>
+    <text x="${cx}" y="${cy-r-8}" text-anchor="middle" font-size="8" fill="var(--muted)" font-family="IBM Plex Mono, monospace">R</text>
+    <text x="${cx}" y="${cy+r+14}" text-anchor="middle" font-size="8" fill="var(--muted)" font-family="IBM Plex Mono, monospace">L</text>
+  </svg>`;
+}
+
+/* ---------- single-value (min-aware) gauge geometry, used by Infrasternal Angle ---------- */
+function polarPointRange(value, min, max, half, cx, cy, r){
+  const frac = (Math.max(min,Math.min(value,max))-min)/(max-min);
+  const angleDeg = 180 - frac*180;
+  const rad = angleDeg * Math.PI/180;
+  const x = cx + r*Math.cos(rad);
+  const y = half==='top' ? cy - r*Math.sin(rad) : cy + r*Math.sin(rad);
+  return {x,y};
+}
+
+function describeArcRange(v0, v1, min, max, half, cx, cy, r){
+  const p0 = polarPointRange(v0, min, max, half, cx, cy, r);
+  const p1 = polarPointRange(v1, min, max, half, cx, cy, r);
+  const sweep = half==='top' ? 1 : 0;
+  return `M ${p0.x} ${p0.y} A ${r} ${r} 0 0 ${sweep} ${p1.x} ${p1.y}`;
+}
+
+function iaGaugeSVG(test, value){
+  const cx=66, cy=66, r=54, rTicks=60, rNeedle=46;
+  const narrowArc = describeArcRange(test.min, test.threshold, test.min, test.max, 'top', cx, cy, r);
+  const wideArc = describeArcRange(test.threshold, test.max, test.min, test.max, 'top', cx, cy, r);
+
+  let ticks = '';
+  [test.min, test.threshold, test.max].forEach(v=>{
+    const p1 = polarPointRange(v, test.min, test.max, 'top', cx, cy, r-2);
+    const p2 = polarPointRange(v, test.min, test.max, 'top', cx, cy, rTicks);
+    ticks += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="var(--line-strong)" stroke-width="1"/>`;
+  });
+
+  let needle;
+  if(value===null){
+    needle = `<circle cx="${cx}" cy="${cy}" r="3.5" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2 2"/>`;
+  } else {
+    const p = polarPointRange(value, test.min, test.max, 'top', cx, cy, rNeedle);
+    needle = `<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--ink)"/>`;
+  }
+
+  return `
+  <svg viewBox="0 0 132 70" class="gauge-svg" data-test="ia" width="132" height="70">
+    <path d="${narrowArc}" fill="none" stroke="var(--accent-2)" stroke-opacity="0.4" stroke-width="6" stroke-linecap="round"/>
+    <path d="${wideArc}" fill="none" stroke="var(--accent)" stroke-opacity="0.4" stroke-width="6" stroke-linecap="round"/>
+    ${ticks}
+    ${needle}
+    <circle cx="${cx}" cy="${cy}" r="3" fill="var(--ink)"/>
+    <text x="${cx-r-2}" y="${cy+2}" text-anchor="middle" font-size="8" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${test.min}°</text>
+    <text x="${cx+r+2}" y="${cy+2}" text-anchor="middle" font-size="8" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${test.max}°</text>
+  </svg>`;
+}
+
+function gaugePointerHandlerSingle(svgEl, test, athlete){
+  function setFromEvent(e){
+    const rect = svgEl.getBoundingClientRect();
+    const scale = 132/rect.width;
+    const px = (e.clientX - rect.left)*scale;
+    const py = (e.clientY - rect.top)*scale;
+    const cx=66, cy=66;
+    const dy = Math.max(0, cy-py);
+    let angle = Math.atan2(dy, px-cx) * 180/Math.PI;
+    angle = Math.max(0, Math.min(180, angle));
+    let value = Math.round(test.min + (test.max-test.min) * (180-angle)/180);
+    value = Math.max(test.min, Math.min(test.max, value));
+    athlete.ia.value = value;
+    render(true);
+  }
+  svgEl.addEventListener('pointerdown', e=>{
+    svgEl.setPointerCapture(e.pointerId);
+    setFromEvent(e);
+    const move = ev=>setFromEvent(ev);
+    const up = ()=>{
+      svgEl.removeEventListener('pointermove', move);
+      svgEl.removeEventListener('pointerup', up);
+    };
+    svgEl.addEventListener('pointermove', move);
+    svgEl.addEventListener('pointerup', up);
+  });
+}
+
+function iaCardHTML(athlete){
+  const v = athlete.ia.value;
+  const category = v===null ? null : (v > IA_TEST.threshold ? 'Wide' : 'Narrow');
+  const badgeClass = category==='Wide' ? 'wide' : (category==='Narrow' ? 'narrow' : '');
+  return `
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">${IA_TEST.label}</div>
+        <div class="card-sub">${IA_TEST.sub}</div>
+      </div>
+      <div class="badge ${badgeClass}">${category || '—'}</div>
+    </div>
+    <div class="gauge-row">
+      <div class="gauge-wrap" data-test="ia" style="height:70px">${iaGaugeSVG(IA_TEST, v)}</div>
+      <div class="gauge-readout">
+        <div class="side-row">
+          <label style="width:auto">Angle</label>
+          <input type="number" min="${IA_TEST.min}" max="${IA_TEST.max}" data-test="ia" value="${v===null?'':v}" placeholder="–">
+          <span class="deg">°</span>
+        </div>
+      </div>
+    </div>
+    <textarea class="note-input" rows="1" data-note="ia" placeholder="Notes...">${escapeHtml(athlete.ia.note)}</textarea>
+  </div>`;
+}
+
+function tspineCardHTML(athlete){
+  const r = athlete.tspine.rating;
+  const active = TSPINE_RATINGS.find(x=>x.value===r);
+  return `
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">${TSPINE_TEST.label}</div>
+        <div class="card-sub">${TSPINE_TEST.sub}</div>
+      </div>
+      <div class="badge ${active?active.cls:''}">${r || '—'}</div>
+    </div>
+    <div class="rating-btns">
+      ${TSPINE_RATINGS.map(rt=>`<button class="rating-btn ${rt.cls} ${r===rt.value?'active':''}" data-tspine="${rt.value}">${rt.value}</button>`).join('')}
+    </div>
+    <textarea class="note-input" rows="1" data-note="tspine" placeholder="Notes...">${escapeHtml(athlete.tspine.note)}</textarea>
+  </div>`;
+}
+
+function pelvisCardHTML(test, athlete){
+  const dataObj = athlete[test.key];
+  const r = dataObj.rating;
+  const active = TRI_COLORS.find(x=>x.value===r);
+  return `
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">${test.label}</div>
+        <div class="card-sub">${test.sub}</div>
+      </div>
+      <div class="badge ${active?active.cls:''}">${r || '—'}</div>
+    </div>
+    <div class="rating-btns">
+      ${TRI_COLORS.map(c=>`<button class="rating-btn ${c.cls} ${r===c.value?'active':''}" data-pelvis="${test.key}" data-value="${c.value}">${c.value}</button>`).join('')}
+    </div>
+    <div class="fault-grid">
+      ${test.faults.map(f=>`
+        <label class="fault-chip">
+          <input type="checkbox" data-pelvis-fault="${test.key}" data-fault="${f}" ${dataObj.faults.has(f)?'checked':''}>
+          ${f}
+        </label>`).join('')}
+    </div>
+    <textarea class="note-input" rows="1" data-note="${test.key}" placeholder="Notes...">${escapeHtml(dataObj.note)}</textarea>
+  </div>`;
+}
+
+function gaugePointerHandler(svgEl, test, athlete){
+  function setFromEvent(e){
+    const rect = svgEl.getBoundingClientRect();
+    const scale = 132/rect.width;
+    const px = (e.clientX - rect.left)*scale;
+    const py = (e.clientY - rect.top)*scale;
+    const cx=66, cy=66;
+    const half = py <= cy ? 'top' : 'bottom';
+    const dy = half==='top' ? (cy-py) : (py-cy);
+    let angle = Math.atan2(dy, px-cx) * 180/Math.PI;
+    angle = Math.max(0, Math.min(180, angle));
+    let value = Math.round(test.max * (180-angle)/180);
+    value = Math.max(0, Math.min(test.max, value));
+    const side = half==='top' ? 'R' : 'L';
+    athlete.scores[test.id][side] = value;
+    render(true);
+  }
+  svgEl.addEventListener('pointerdown', e=>{
+    svgEl.setPointerCapture(e.pointerId);
+    setFromEvent(e);
+    const move = ev=>setFromEvent(ev);
+    const up = ()=>{
+      svgEl.removeEventListener('pointermove', move);
+      svgEl.removeEventListener('pointerup', up);
+    };
+    svgEl.addEventListener('pointermove', move);
+    svgEl.addEventListener('pointerup', up);
+  });
+}
+
+/* ---------- render ---------- */
+function render(skipFocusReset){
+  const roster = document.getElementById('roster');
+  if(state.athletes.length === 0){
+    roster.innerHTML = `<div class="roster-empty">No athletes yet. Add one above to start a screening log.</div>`;
+  } else {
+    roster.innerHTML = state.athletes.map(a=>{
+      const done = countCompleted(a);
+      const flags = countFlags(a);
+      return `
+      <div class="athlete-item ${a.id===state.selectedId?'active':''}" data-id="${a.id}">
+        <div class="avatar" style="background:${avatarColor(a.id)}">${initials(a.name)}</div>
+        <div class="athlete-info">
+          <div class="athlete-name">${escapeHtml(a.name)}</div>
+          <div class="athlete-progress">${done}/${TOTAL_POINTS}${flags?` · ${flags} flag${flags>1?'s':''}`:''}</div>
+        </div>
+        <button class="del-btn" data-del="${a.id}" title="Remove athlete">×</button>
+      </div>`;
+    }).join('');
+
+    roster.querySelectorAll('.athlete-item').forEach(el=>{
+      el.addEventListener('click', e=>{
+        if(e.target.closest('.del-btn')) return;
+        selectAthlete(el.dataset.id);
+      });
+    });
+    roster.querySelectorAll('[data-del]').forEach(el=>{
+      el.addEventListener('click', e=>{
+        e.stopPropagation();
+        deleteAthlete(el.dataset.del);
+      });
+    });
+  }
+
+  const main = document.getElementById('main');
+  const athlete = state.athletes.find(a=>a.id===state.selectedId);
+
+  if(!athlete){
+    main.innerHTML = `
+      <div class="empty-state">
+        <div class="mark">Range<span>.</span></div>
+        <div class="tag">Mobility Screening Log</div>
+        <p>Add an athlete on the left to start logging hip external / internal rotation, shoulder ER / IR / flexion, seated T-spine rotation, pelvic tilt, pelvis rotation, infrasternal angle, and the overhead squat screen.</p>
+        <div class="protocol-list">
+          01 · Hip External Rotation<br>
+          02 · Hip Internal Rotation<br>
+          03 · Shoulder External Rotation<br>
+          04 · Shoulder Internal Rotation<br>
+          05 · Shoulder Flexion<br>
+          06 · Seated T-Spine Rotation<br>
+          07 · Pelvic Tilt<br>
+          08 · Pelvis Rotation<br>
+          09 · Infrasternal Angle<br>
+          10 · Overhead Squat Screen
+        </div>
+      </div>`;
+    return;
+  }
+
+  const done = countCompleted(athlete);
+  const flags = countFlags(athlete);
+  const today = new Date().toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+
+  main.innerHTML = `
+    <div class="session-header">
+      <div>
+        <h1>${escapeHtml(athlete.name)}</h1>
+        <div class="session-meta">Session · ${today}</div>
+      </div>
+      <div class="session-stats">
+        <div class="stat"><div class="num">${done}/${TOTAL_POINTS}</div><div class="label">Complete</div></div>
+        <div class="stat ${flags?'flagged':''}"><div class="num">${flags}</div><div class="label">Flags</div></div>
+        <button class="save-btn" id="saveBtn">Save</button>
+        <button class="new-test-btn" id="newTestBtn">Save &amp; New Test</button>
+        <button class="history-btn" id="historyBtn">View History</button>
+      </div>
+    </div>
+    ${athlete.sessions && athlete.sessions.length ? `
+    <div class="history-row">
+      <span class="history-label">History</span>
+      ${athlete.sessions.map(s=>`<button class="history-pill" data-session="${s.id}">${new Date(s.date).toLocaleDateString(undefined,{month:'short',day:'numeric'})} · ${countCompletedSnapshot(s)}/${TOTAL_POINTS}</button>`).join('')}
+    </div>` : ''}
+    <div class="progress-track"><div class="progress-fill" style="width:${(done/TOTAL_POINTS*100).toFixed(0)}%"></div></div>
+    <div class="card-grid" id="cardGrid"></div>
+  `;
+
+  const saveBtn = document.getElementById('saveBtn');
+  if(saveBtn){
+    saveBtn.addEventListener('click', ()=>{
+      const ok = saveState();
+      saveBtn.textContent = ok ? 'Saved ✓' : 'Save failed';
+      saveBtn.classList.remove('saved','save-error');
+      saveBtn.classList.add(ok ? 'saved' : 'save-error');
+      clearTimeout(saveBtn._resetTimer);
+      saveBtn._resetTimer = setTimeout(()=>{
+        saveBtn.textContent = 'Save';
+        saveBtn.classList.remove('saved','save-error');
+      }, 1500);
+    });
+  }
+
+  const newTestBtn = document.getElementById('newTestBtn');
+  if(newTestBtn){
+    newTestBtn.addEventListener('click', ()=>{
+      showConfirm(`Save this test to ${athlete.name}'s history and start a fresh one?`, ()=>{
+        startNewTest(athlete);
+      });
+    });
+  }
+
+  const historyBtn = document.getElementById('historyBtn');
+  if(historyBtn){
+    historyBtn.addEventListener('click', ()=> openHistoryModal(athlete));
+  }
+
+  main.querySelectorAll('.history-pill').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      loadSession(athlete, btn.dataset.session);
+    });
+  });
+
+  const grid = document.getElementById('cardGrid');
+  grid.innerHTML = TESTS.map(t=>{
+    const s = athlete.scores[t.id];
+    const flagged = isFlagged(t, s);
+    const done2 = s.L!==null && s.R!==null;
+    return `
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">${t.label}</div>
+          <div class="card-sub">${t.sub}</div>
+        </div>
+        <div class="badge ${flagged?'flag':(done2?'good':'')}">${flagged?'Asymmetry':(done2?'Logged':'—')}</div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-wrap" data-test="${t.id}">${gaugeSVG(t, s)}</div>
+        <div class="gauge-readout">
+          <div class="side-row">
+            <span class="side-dot r"></span><label>R</label>
+            <input type="number" min="0" max="${t.max}" data-test="${t.id}" data-side="R" value="${s.R===null?'':s.R}" placeholder="–">
+            <span class="deg">° / ${t.max}°</span>
+          </div>
+          <div class="side-row">
+            <span class="side-dot l"></span><label>L</label>
+            <input type="number" min="0" max="${t.max}" data-test="${t.id}" data-side="L" value="${s.L===null?'':s.L}" placeholder="–">
+            <span class="deg">° / ${t.max}°</span>
+          </div>
+        </div>
+      </div>
+      <textarea class="note-input" rows="1" data-note="${t.id}" placeholder="Notes...">${escapeHtml(s.note)}</textarea>
+    </div>`;
+  }).join('') + tspineCardHTML(athlete) + PELVIS_TESTS.map(t=>pelvisCardHTML(t, athlete)).join('') + iaCardHTML(athlete) + squatCardHTML(athlete);
+
+  // wire up gauges
+  TESTS.forEach(t=>{
+    const wrap = grid.querySelector(`.gauge-wrap[data-test="${t.id}"] svg`);
+    if(wrap) gaugePointerHandler(wrap, t, athlete);
+  });
+  const iaWrap = grid.querySelector('.gauge-wrap[data-test="ia"] svg');
+  if(iaWrap) gaugePointerHandlerSingle(iaWrap, IA_TEST, athlete);
+
+  // wire up number inputs
+  grid.querySelectorAll('input[type="number"]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      const testId = inp.dataset.test;
+      if(testId==='ia'){
+        let v = inp.value === '' ? null : Math.max(IA_TEST.min, Math.min(IA_TEST.max, Math.round(Number(inp.value))));
+        athlete.ia.value = v;
+        render(true);
+        return;
+      }
+      const side = inp.dataset.side;
+      const t = TESTS.find(x=>x.id===testId);
+      let v = inp.value === '' ? null : Math.max(0, Math.min(t.max, Math.round(Number(inp.value))));
+      athlete.scores[testId][side] = v;
+      render(true);
+    });
+  });
+  grid.querySelectorAll('.note-input').forEach(ta=>{
+    ta.addEventListener('input', ()=>{
+      const key = ta.dataset.note;
+      if(key==='ia'){ athlete.ia.note = ta.value; return; }
+      if(key==='tspine'){ athlete.tspine.note = ta.value; return; }
+      if(key==='pelvicTilt' || key==='pelvisRotation'){ athlete[key].note = ta.value; return; }
+      athlete.scores[key].note = ta.value;
+    });
+  });
+  // t-spine / pelvis rating buttons
+  grid.querySelectorAll('.rating-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(btn.dataset.tspine){
+        athlete.tspine.rating = btn.dataset.tspine;
+      } else if(btn.dataset.pelvis){
+        athlete[btn.dataset.pelvis].rating = btn.dataset.value;
+      }
+      render(true);
+    });
+  });
+  // squat interactions
+  grid.querySelectorAll('.score-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      athlete.squat.score = Number(btn.dataset.score);
+      render(true);
+    });
+  });
+  grid.querySelectorAll('.fault-chip input').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      if(cb.dataset.pelvisFault){
+        const key = cb.dataset.pelvisFault;
+        if(cb.checked) athlete[key].faults.add(cb.dataset.fault);
+        else athlete[key].faults.delete(cb.dataset.fault);
+      } else {
+        if(cb.checked) athlete.squat.faults.add(cb.dataset.fault);
+        else athlete.squat.faults.delete(cb.dataset.fault);
+      }
+      render(true);
+    });
+  });
+}
+
+function squatCardHTML(athlete){
+  const sq = athlete.squat;
+  return `
+  <div class="card wide">
+    <div class="card-head">
+      <div>
+        <div class="card-title">Overhead Squat Screen</div>
+        <div class="card-sub">FMS-style movement quality, 0&ndash;3</div>
+      </div>
+      <div class="badge ${sq.score!==null ? (sq.score>=2?'good':'flag') : ''}">${sq.score!==null? 'Score '+sq.score : '—'}</div>
+    </div>
+    <div class="squat-body">
+      <div class="squat-score">
+        <div class="score-label">Movement Score</div>
+        <div class="score-btns">
+          ${[0,1,2,3].map(n=>`<button class="score-btn ${sq.score===n?'active':''}" data-score="${n}">${n}</button>`).join('')}
+        </div>
+      </div>
+      <div class="fault-grid">
+        <div class="score-label">Compensation Patterns</div>
+        ${SQUAT_FAULTS.map(f=>`
+          <label class="fault-chip">
+            <input type="checkbox" data-fault="${f}" ${sq.faults.has(f)?'checked':''}>
+            ${f}
+          </label>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function escapeHtml(str){
+  return (str||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function showToast(message){
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  const raf = (typeof requestAnimationFrame === 'function') ? requestAnimationFrame : (cb)=>setTimeout(cb, 16);
+  raf(()=> toast.classList.add('show'));
+  setTimeout(()=>{
+    toast.classList.remove('show');
+    setTimeout(()=> toast.remove(), 300);
+  }, 2400);
+}
+
+function showConfirm(message, onConfirm, opts){
+  opts = opts || {};
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay confirm-overlay';
+  overlay.innerHTML = `
+    <div class="confirm-panel">
+      <p class="confirm-message">${escapeHtml(message)}</p>
+      <div class="confirm-actions">
+        <button class="confirm-cancel" id="confirmCancelBtn">Cancel</button>
+        <button class="confirm-ok ${opts.danger?'danger':''}" id="confirmOkBtn">${opts.okLabel || 'Confirm'}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const escHandler = e=>{ if(e.key==='Escape') close(); };
+  function close(){
+    overlay.remove();
+    document.removeEventListener('keydown', escHandler);
+  }
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) close(); });
+  overlay.querySelector('#confirmCancelBtn').addEventListener('click', close);
+  overlay.querySelector('#confirmOkBtn').addEventListener('click', ()=>{ close(); onConfirm(); });
+  document.addEventListener('keydown', escHandler);
+}
+
+/* ---------- history / trend modal ---------- */
+const HISTORY_ROWS = [
+  ...TESTS.map(t=>({ type:'bilateral', id:t.id, label:t.label })),
+  { type:'tspine', label: TSPINE_TEST.label },
+  ...PELVIS_TESTS.map(t=>({ type:'pelvis', key:t.key, label:t.label })),
+  { type:'ia', label: IA_TEST.label },
+  { type:'squat', label:'Overhead Squat Screen' },
+];
+
+function formatDelta(curr, prev){
+  if(curr===null || prev===null || prev===undefined) return '';
+  const diff = curr - prev;
+  if(diff===0) return `<span class="delta flat">–</span>`;
+  return `<span class="delta ${diff>0?'up':'down'}">${diff>0?'▲':'▼'}${Math.abs(diff)}°</span>`;
+}
+
+function cellFor(dataObj, row, prevObj){
+  if(row.type==='bilateral'){
+    const s = dataObj.scores[row.id];
+    const prevS = prevObj ? prevObj.scores[row.id] : null;
+    if(s.L===null && s.R===null) return '–';
+    const r = s.R===null ? '–' : `${s.R}° ${prevS ? formatDelta(s.R, prevS.R) : ''}`;
+    const l = s.L===null ? '–' : `${s.L}° ${prevS ? formatDelta(s.L, prevS.L) : ''}`;
+    return `<div class="cell-line">R ${r}</div><div class="cell-line">L ${l}</div>`;
+  }
+  if(row.type==='tspine'){
+    return dataObj.tspine.rating || '–';
+  }
+  if(row.type==='pelvis'){
+    const d = dataObj[row.key];
+    if(!d || d.rating===null) return '–';
+    const faultsArr = d.faults instanceof Set ? Array.from(d.faults) : (d.faults||[]);
+    return `${d.rating}${faultsArr.length? ` · ${faultsArr.join(', ')}` : ''}`;
+  }
+  if(row.type==='ia'){
+    if(dataObj.ia.value===null) return '–';
+    const cat = dataObj.ia.value > IA_TEST.threshold ? 'Wide' : 'Narrow';
+    const prevV = prevObj && prevObj.ia.value!==null ? prevObj.ia.value : null;
+    return `${dataObj.ia.value}° (${cat}) ${prevV!==null ? formatDelta(dataObj.ia.value, prevV) : ''}`;
+  }
+  if(row.type==='squat'){
+    if(dataObj.squat.score===null) return '–';
+    const faultsArr = dataObj.squat.faults instanceof Set ? Array.from(dataObj.squat.faults) : (dataObj.squat.faults||[]);
+    return `${dataObj.squat.score}${faultsArr.length? ` · ${faultsArr.length} fault${faultsArr.length>1?'s':''}` : ''}`;
+  }
+  return '–';
+}
+
+function openHistoryModal(athlete){
+  const sessionsAsc = (athlete.sessions||[]).slice().reverse();
+  const columns = sessionsAsc.map(s=>({
+    label: new Date(s.date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'2-digit'}),
+    data: s
+  })).concat([{ label:'Current', data: athlete, current:true }]);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-panel">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">${escapeHtml(athlete.name)} — History</div>
+          <div class="modal-sub">${sessionsAsc.length} saved session${sessionsAsc.length!==1?'s':''} · oldest → newest</div>
+        </div>
+        <button class="modal-close" id="modalCloseBtn">×</button>
+      </div>
+      <div class="modal-body">
+        ${sessionsAsc.length===0 ? `<p class="modal-empty">No past sessions saved yet for ${escapeHtml(athlete.name)}. Fill out a test, then hit "Save &amp; New Test" — it archives the results here and clears the board for the next one.</p>` : `
+        <table class="history-table">
+          <thead><tr><th>Test</th>${columns.map(c=>`<th>${c.label}${c.current?' <span class="cur-tag">●</span>':''}</th>`).join('')}</tr></thead>
+          <tbody>
+            ${HISTORY_ROWS.map(r=>`<tr><td class="row-label">${r.label}</td>${columns.map((c,i)=>`<td>${cellFor(c.data, r, i>0?columns[i-1].data:null)}</td>`).join('')}</tr>`).join('')}
+          </tbody>
+        </table>
+        <p class="modal-footnote">▲ / ▼ show the change vs. the previous saved session — track it up or down as you re-test.</p>`}
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const escHandler = e=>{ if(e.key==='Escape') close(); };
+  function close(){
+    overlay.remove();
+    document.removeEventListener('keydown', escHandler);
+  }
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) close(); });
+  overlay.querySelector('#modalCloseBtn').addEventListener('click', close);
+  document.addEventListener('keydown', escHandler);
+}
+
+/* ---------- save / load (browser localStorage) ---------- */
+const STORAGE_KEY = 'range-mobility-log-v1';
+
+function saveState(){
+  try{
+    const payload = {
+      selectedId: state.selectedId,
+      athletes: state.athletes.map(a=>({
+        id: a.id,
+        name: a.name,
+        scores: a.scores,
+        tspine: a.tspine,
+        pelvicTilt: { rating: a.pelvicTilt.rating, faults: Array.from(a.pelvicTilt.faults), note: a.pelvicTilt.note },
+        pelvisRotation: { rating: a.pelvisRotation.rating, faults: Array.from(a.pelvisRotation.faults), note: a.pelvisRotation.note },
+        ia: a.ia,
+        squat: { score: a.squat.score, faults: Array.from(a.squat.faults) },
+        sessions: a.sessions || []
+      }))
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    return true;
+  } catch(e){
+    console.error('RANGE save failed:', e);
+    return false;
+  }
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    state.selectedId = data.selectedId || null;
+    state.athletes = (data.athletes || []).map(a=>({
+      id: a.id,
+      name: a.name,
+      scores: a.scores,
+      tspine: a.tspine || { rating:null, note:'' },
+      pelvicTilt: { rating: a.pelvicTilt?.rating ?? null, faults: new Set(a.pelvicTilt?.faults || []), note: a.pelvicTilt?.note || '' },
+      pelvisRotation: { rating: a.pelvisRotation?.rating ?? null, faults: new Set(a.pelvisRotation?.faults || []), note: a.pelvisRotation?.note || '' },
+      ia: a.ia || { value:null, note:'' },
+      squat: { score: a.squat?.score ?? null, faults: new Set(a.squat?.faults || []) },
+      sessions: a.sessions || []
+    }));
+  } catch(e){
+    console.error('RANGE load failed:', e);
+  }
+}
+
+/* ---------- export / import backup file ---------- */
+function exportData(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    selectedId: state.selectedId,
+    athletes: state.athletes.map(a=>({
+      id: a.id,
+      name: a.name,
+      scores: a.scores,
+      tspine: a.tspine,
+      pelvicTilt: { rating: a.pelvicTilt.rating, faults: Array.from(a.pelvicTilt.faults), note: a.pelvicTilt.note },
+      pelvisRotation: { rating: a.pelvisRotation.rating, faults: Array.from(a.pelvisRotation.faults), note: a.pelvisRotation.note },
+      ia: a.ia,
+      squat: { score: a.squat.score, faults: Array.from(a.squat.faults) },
+      sessions: a.sessions || []
+    }))
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `range-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  showToast('Backup file downloaded');
+}
+
+function importData(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    let data;
+    try{
+      data = JSON.parse(e.target.result);
+    } catch(err){
+      showToast('Could not read that file — is it a RANGE backup?');
+      return;
+    }
+    showConfirm('Import this backup? It will replace all athletes and history currently in this browser.', ()=>{
+      state.selectedId = data.selectedId || null;
+      state.athletes = (data.athletes || []).map(a=>({
+        id: a.id,
+        name: a.name,
+        scores: a.scores,
+        tspine: a.tspine || { rating:null, note:'' },
+        pelvicTilt: { rating: a.pelvicTilt?.rating ?? null, faults: new Set(a.pelvicTilt?.faults || []), note: a.pelvicTilt?.note || '' },
+        pelvisRotation: { rating: a.pelvisRotation?.rating ?? null, faults: new Set(a.pelvisRotation?.faults || []), note: a.pelvisRotation?.note || '' },
+        ia: a.ia || { value:null, note:'' },
+        squat: { score: a.squat?.score ?? null, faults: new Set(a.squat?.faults || []) },
+        sessions: a.sessions || []
+      }));
+      saveState();
+      render();
+      showToast('Backup imported');
+    }, { okLabel:'Import' });
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('exportBtn').addEventListener('click', exportData);
+document.getElementById('importFile').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(file) importData(file);
+  e.target.value = '';
+});
+
+document.getElementById('addAthleteBtn').addEventListener('click', ()=>{
+  const inp = document.getElementById('newAthleteInput');
+  addAthlete(inp.value);
+  inp.value = '';
+});
+document.getElementById('newAthleteInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){
+    addAthlete(e.target.value);
+    e.target.value = '';
+  }
+});
+
+loadState();
+render();
+</script>
+</body>
+</html>
